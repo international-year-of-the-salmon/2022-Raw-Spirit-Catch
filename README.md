@@ -1,6 +1,6 @@
 ## Hi there 👋
 
-🙋 Welcome to the repository for the gillnet and longline data from the R/V Raw Spirit collected in 2022 as part of the International Year of the Salmon High Seas Expedition.
+🙋 Welcome to the repository for the gillnet and longline data from the FV Raw Spirit collected in 2022 as part of the International Year of the Salmon High Seas Expedition.
 
 🤖 See the metadata record for this dataset here: 
 
