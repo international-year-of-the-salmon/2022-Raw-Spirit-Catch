@@ -45,10 +45,14 @@ Create Event Core:
 
 event <- read_excel(here::here("IYS_data_template", "IYS2022_Data_template_RS.xlsx"), sheet = "4. SAMPLING EVENT INFO")
 
+# Get the polygon coordinates that are useful for the metadata record:
+polygon_coords(event)
+
 event <- event %>% filter(event_type == "Trawl") %>%
   mutate(eventDate = paste0(as_date(
     paste0(year, "-", month, "-", day))))
 
+# Confirm event dates are all in order:
 obistools::check_eventdate(event)
 
 RS_event <- event %>%
@@ -73,40 +77,91 @@ write_csv(RS_event, here("standardized_data", "RS2022_event.csv"))
 
 Next, create the occurrence extension:
 
-```{r occurrence}
+```{r}
 occurrence <- read_excel(here::here("IYS_data_template", "IYS2022_Data_template_RS.xlsx"), sheet = "5. CATCH FINAL INFO")
-  
+
 occurrence <- occurrence %>%
-    rename(occurrenceID = catch_ID,
-           verbatimIdentification = species_recorded,
-           scientificName = scientific_name)
-  
-unique_spp <- unique(occurrence$scientificName) %>% as.data.frame()
-colnames(unique_spp) <- "scientificName"
-  
-  # Confirm that the total catches across species matches the values reported in the paper.
+  dplyr::rename(occurrenceID = catch_ID,
+         verbatimIdentification = species_recorded,
+         scientificName = scientific_name) %>%
+  select(-taxonomic_rank)
+
+# Confirm that the total catches across species matches the values reported in the paper.
 occurrence %>% group_by(scientificName) %>%
     summarise(total_catch = sum(catch_count))
-  
-  # Assign WoRMS LSID to the unique species:
-worms_id <- worrms::wm_records_names(unique(occurrence$scientificName), marine_only = T) %>% 
-    dplyr::bind_rows() %>%
-    rename(scientificName = scientificname)
-  
-  # Now that all unique entries have a WoRMS ID, connect this to the original data frame:
-rs_occurrence <- left_join(occurrence, worms_id, by = "scientificName")
+
+# Get unique species names:
+unique_spp <- unique(occurrence$scientificName) %>% as.data.frame()
+colnames(unique_spp) <- "scientificName"
+
+unique_spp$specificEpithet <- ""
+unique_spp$scientificNameID <- ""
+unique_spp$kingdom <- ""
+unique_spp$phylum <- ""
+unique_spp$class <- ""
+unique_spp$order <- ""
+unique_spp$family <- ""
+unique_spp$genus <- ""
+unique_spp$scientificNameAuthorship <- ""
+unique_spp$taxonRank <- ""
+unique_spp$taxonomicStatus <- ""
+
+# use this loop to populate the unique_spp dataframe:
+getid <- function(x) {
+  for (i in 1:nrow(x)) 
+    if (!is.na(x[i,ncol(x)])){
+      if (nchar(x[i,ncol(x)]) == 0) {
+        df <- as.data.frame(worrms::wm_records_names(x[i,]$scientificName, fuzzy = TRUE, marine_only = FALSE))
+        if (nrow(df) < 1) {
+          unique_spp[i,]$scientificNameID <<- NA
+        }
+        else if (nrow(df) > 1 & df[1,]$status != "accepted") {
+          View(df)
+          wormsdf <- readline(prompt = "Enter row number:")
+          unique_spp[i,]$specificEpithet <<- stringr::word(df[wormsdf,]$scientificname, 2)
+          unique_spp[i,]$scientificNameID <<- df[wormsdf,]$lsid
+          unique_spp[i,]$kingdom <<- df[wormsdf,]$kingdom
+          unique_spp[i,]$phylum <<- df[wormsdf,]$phylum
+          unique_spp[i,]$class <<- df[wormsdf,]$class
+          unique_spp[i,]$order <<- df[wormsdf,]$order
+          unique_spp[i,]$family <<- df[wormsdf,]$family
+          unique_spp[i,]$genus <<- df[wormsdf,]$genus
+          unique_spp[i,]$scientificNameAuthorship <<- df[wormsdf,]$authority
+          unique_spp[i,]$taxonRank <<- df[wormsdf,]$rank
+          unique_spp[i,]$taxonomicStatus <<- df[wormsdf,]$status
+        }
+        else {
+          unique_spp[i,]$specificEpithet <<- stringr::word(df[wormsdf,]$scientificname, 2)[1]
+          unique_spp[i,]$scientificNameID <<- df$lsid[1]
+          unique_spp[i,]$kingdom <<- df$kingdom[1]
+          unique_spp[i,]$phylum <<- df$phylum[1]
+          unique_spp[i,]$class <<- df$class[1]
+          unique_spp[i,]$order <<- df$order[1]
+          unique_spp[i,]$family <<- df$family[1]
+          unique_spp[i,]$genus <<- df$genus[1]
+          unique_spp[i,]$scientificNameAuthorship <<- df$authority[1]
+          unique_spp[i,]$taxonRank <<- df$rank[1]
+          unique_spp[i,]$taxonomicStatus <<- df$status[1]
+          message(paste("Looking up information for species:", x[i,]$scientificName))
+        }
+      }
+    }
+}
+getid(unique_spp)
+print(unique_spp)
+
+rs_occurrence <- left_join(occurrence, unique_spp, by = "scientificName")
   
   # Omit biomass data from the occurrence extension:
 rs_occurrence <- rs_occurrence %>%
-    mutate(specificEpithet = stringr::word(scientificName, 2)) %>%
     select(eventID = station_event_ID,
            occurrenceID,
            scientificName,
            verbatimIdentification,
-           scientificNameID = `lsid`, 
-           scientificNameAuthorship = authority,
-           taxonomicStatus = status,
-           taxonRank = rank, 
+           scientificNameID,
+           scientificNameAuthorship,
+           taxonomicStatus,
+           taxonRank, 
            individualCount = catch_count, kingdom, phylum, 
            class, order, family, genus, specificEpithet) %>% 
     distinct() %>%
@@ -115,6 +170,7 @@ rs_occurrence <- rs_occurrence %>%
   
 # Save locally:
 write_csv(rs_occurrence, here("standardized_data", "RS2022_occurrence.csv"))
+
 ```
 
 Finally, create an eMOF extension for the water temperatures associated with the catches.
