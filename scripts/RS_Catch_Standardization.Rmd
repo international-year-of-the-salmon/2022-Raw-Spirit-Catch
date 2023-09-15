@@ -56,6 +56,7 @@ event <- event %>% filter(event_type == "Trawl") %>%
 obistools::check_eventdate(event)
 
 RS_event <- event %>%
+  as_tibble() %>%
   select(eventID = station_event_ID,
          eventDate,
          year, month, day,
@@ -65,8 +66,8 @@ RS_event <- event %>%
          maximumDepthInMeters = 8) %>%
   distinct(eventID, .keep_all = TRUE) %>%
   mutate(geodeticDatum = "WGS84",
-         datasetID = " ",
-         bibliographicCitation = " ",
+         datasetID = "https://doi.org/10.21966/38k8-w312",
+         bibliographicCitation = "Beamish, R., Neville, C., & Riddell, B. (2023). Catch data from the F/V Raw Spirit during the 2022 International Year of the Salmon Pan-Pacific Winter High Seas Expedition (1st ed.) [Data set]. North Pacific Anadromous Fish Commission. https://doi.org/10.21966/38k8-w312",
          language = "en",
          modified = lubridate::today(),
          license = "https://creativecommons.org/licenses/by/4.0/legalcode")
@@ -131,7 +132,7 @@ getid <- function(x) {
           unique_spp[i,]$taxonomicStatus <<- df[wormsdf,]$status
         }
         else {
-          unique_spp[i,]$specificEpithet <<- stringr::word(df[wormsdf,]$scientificname, 2)[1]
+          unique_spp[i,]$specificEpithet <<- stringr::word(df$scientificname[1], 2)
           unique_spp[i,]$scientificNameID <<- df$lsid[1]
           unique_spp[i,]$kingdom <<- df$kingdom[1]
           unique_spp[i,]$phylum <<- df$phylum[1]
@@ -152,8 +153,9 @@ print(unique_spp)
 
 rs_occurrence <- left_join(occurrence, unique_spp, by = "scientificName")
   
-  # Omit biomass data from the occurrence extension:
+# Omit biomass data from the occurrence extension:
 rs_occurrence <- rs_occurrence %>%
+    as_tibble() %>%
     select(eventID = station_event_ID,
            occurrenceID,
            scientificName,
@@ -177,7 +179,8 @@ Finally, create an eMOF extension for the water temperatures associated with the
 
 ```{r emof}
 
-rs_temp <- read_excel(here::here("IYS_data_template", "IYS2022_Data_template_RS.xlsx"), sheet = "8. CTD INFO")
+rs_temp <- read_excel(here::here("IYS_data_template", "IYS2022_Data_template_RS.xlsx"), sheet = "8. CTD INFO") %>%
+  as_tibble()
 
 # Replace CTD in the station_event_ID with Trawl so that it becomes nested under the correct eventID:
 rs_temp$station_event_ID <- gsub("CTD", "Trawl", rs_temp$station_event_ID)
@@ -208,9 +211,6 @@ rs_temp <- rs_temp %>%
          measurementValueID = NA) %>%
   select(eventID, measurementID, measurementType, measurementTypeID, measurementValue, measurementValueID,
          measurementUnit, measurementUnitID)
-
-#TODO: Add information from CTD / Vessel if we have more detailed information.
-# Data table for the overall catch:
 
 # Save locally:
 write_csv(rs_temp, here("standardized_data", "RS2022_emof.csv"))
