@@ -2,7 +2,7 @@
 
 🙋 Welcome to the repository for the gillnet and longline data from the F/V Raw Spirit collected in 2022 as part of the International Year of the Salmon High Seas Expedition.
 
-🤖 See the metadata record for this dataset here: https://doi.org/10.21966/38k8-w312 (draft)
+🤖 See the metadata record for this dataset here: https://doi.org/10.21966/38k8-w312
 
 🚢 Recommended citation for this data record: 
 
