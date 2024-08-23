@@ -6,7 +6,7 @@
 
 🚢 Recommended citation for this data record: 
 
-Beamish, R., Neville, C., & Riddell, B. (2023). Catch data from the F/V Raw Spirit during the 2022 International Year of the Salmon Pan-Pacific Winter High Seas Expedition (1st ed.) [Data set]. North Pacific Anadromous Fish Commission. https://doi.org/10.21966/38k8-w312
+Beamish, R., Neville, C., & Riddell, B. (2024). Catch data from the F/V Raw Spirit during the 2022 International Year of the Salmon Pan-Pacific Winter High Seas Expedition (1st ed.) [Data set]. North Pacific Anadromous Fish Commission. https://doi.org/10.21966/38k8-w312
 
 🐟 The repository is structured as follows: 
   * `original_data` contains processed data files that have been sent to the IYS Data Scientists that have not been formatted to the IYS Data Template.
